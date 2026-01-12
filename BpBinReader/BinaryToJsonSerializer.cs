@@ -44,7 +44,7 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
             try {
                 ReadValueAsJson(writer, field.Value);
             } catch (Exception ex) {
-                Main.Log.Error($"[Deserialize] Failure at {schema.FullName}.{field.Name} kind={field.Value.Kind} pos=0x{startPos:X} ex={ex}");
+                Console.WriteLine($"[Deserialize] Failure at {schema.FullName}.{field.Name} kind={field.Value.Kind} pos=0x{startPos:X} ex={ex}");
                 throw;
             }
         }

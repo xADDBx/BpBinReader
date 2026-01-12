@@ -1,3 +1,4 @@
+#if false
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.JsonSystem.BinaryFormat;
 using Kingmaker.Blueprints.JsonSystem.Helpers;
@@ -188,3 +189,4 @@ public class ReflectionTypeSchemaProvider : ITypeSchemaProvider {
         return map;
     }
 }
+#endif

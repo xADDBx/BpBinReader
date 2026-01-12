@@ -31,7 +31,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         object rawValue = Convert.ChangeType(value, underlyingType, CultureInfo.InvariantCulture);
         long convertedValue = Convert.ToInt64(rawValue);
         var matching = fields
-            .Where(f => ((Convert.ToInt64(f.GetRawConstantValue()) & convertedValue) != 0))
+            .Where(f => (Convert.ToInt64(f.GetRawConstantValue()) & convertedValue) != 0)
             .Select(f => f.Name);
 
         return string.Join(" | ", matching);
@@ -76,7 +76,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
             .Select(f => new FieldSchema(f.Name, BuildValueSchema(f.FieldType)))
             .ToArray();
 
-        return new TypeSchema(type.Name, type.FullName ?? type.Name, fields, typeof(object), typeId);
+        return new TypeSchema(type.Name, type.FullName ?? type.Name, fields, type, typeId);
     }
     protected ValueSchema BuildValueSchema(Type fieldType) {
         var fn = fieldType.FullName ?? fieldType.Name;

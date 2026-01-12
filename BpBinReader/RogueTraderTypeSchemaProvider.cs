@@ -1,4 +1,5 @@
 using System.Reflection;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BpBinReader;
 
@@ -21,7 +22,7 @@ public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchem
     private readonly Type m_ElementType;
 
     public RogueTraderTypeSchemaProvider(IEnumerable<string> assemblyDirectoryPaths) : base(assemblyDirectoryPaths) {
-        m_TypeIdAttributeType = RequireType("Kingmaker.Blueprints.JsonSystem.BinaryFormat.TypeIdAttribute");
+        m_TypeIdAttributeType = RequireType("Kingmaker.Blueprints.JsonSystem.Helpers.TypeIdAttribute");
         m_TypeIdGuidProp = m_TypeIdAttributeType.GetProperty("Guid", BindingFlags.Instance | BindingFlags.Public) ?? throw new InvalidOperationException("TypeIdAttribute.Guid property not found.");
 
 
@@ -44,12 +45,12 @@ public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchem
                 var attr = GetAttribute(t, m_TypeIdAttributeType);
                 if (attr != null) {
 
-                    var guidValue = m_TypeIdGuidProp.GetValue(attr) as Guid?;
-                    if (guidValue == null || guidValue.Value == Guid.Empty) {
+                    string? guid = attr.ConstructorArguments[0].Value as string;
+                    if (string.IsNullOrWhiteSpace(guid)) {
                         continue;
                     }
 
-                    m_TypeById[guidValue.Value] = t;
+                    m_TypeById[new(guid)] = t;
                 }
             }
         }
@@ -63,7 +64,7 @@ public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchem
     private IEnumerable<FieldInfo> FieldsContractResolver_GetUnitySerializedFields(Type type) {
         List<FieldInfo> allFields = [];
         if (type.BaseType != null) {
-            allFields.AddRange(FieldsContractResolver_GetUnitySerializedFields(type));
+            allFields.AddRange(FieldsContractResolver_GetUnitySerializedFields(type.BaseType));
         }
         allFields.AddRange(type.GetFields(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
             .Where(f => f.IsPublic || HasAttribute(f, m_SerializeFieldAttributeType))
@@ -71,7 +72,10 @@ public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchem
             .Where(f => FieldsContractResolver_IsSerializableType(f, f.FieldType, true)));
         return allFields;
     }
-    private bool FieldsContractResolver_IsSerializableType(FieldInfo field, Type fieldType, bool arraysAllowed) {
+    private bool FieldsContractResolver_IsSerializableType(FieldInfo field, Type? fieldType, bool arraysAllowed) {
+        if (fieldType == null) {
+            return false;
+        }
         var fn = fieldType.FullName ?? fieldType.Name;
 
         if (fieldType.IsPrimitive || fieldType.IsEnum || fn == "System.String") {
@@ -115,7 +119,7 @@ public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchem
 
         if (HasAttribute(fieldType, m_SerializableAttributeType)) {
             var asmName = fieldType.Assembly.GetName().Name;
-            Main.Log.Log($"{asmName}");
+            Console.WriteLine($"{asmName}");
             return !string.Equals(asmName, "mscorlib", StringComparison.OrdinalIgnoreCase);
         }
 
