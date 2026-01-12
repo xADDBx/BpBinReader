@@ -18,7 +18,7 @@ public class ReflectionTypeSchemaProvider : ITypeSchemaProvider {
         Main.Log.Log($"[Schema] Indexed TypeIds: {m_TypeById.Count}");
     }
 
-    public string GetEnumName(TypeSchema enumType, int value) {
+    public string GetEnumName(TypeSchema enumType, object value) {
         return Enum.GetName(enumType.Type, value);
     }
     public TypeSchema Resolve(Guid typeId) {

@@ -13,7 +13,7 @@ public static class Main {
 
         try {
             // TODO: wire a real schema provider (in-game reflection first, MetadataLoadContext later).
-            var schemaProvider = new ReflectionTypeSchemaProvider();
+            var schemaProvider = new RogueTraderTypeSchemaProvider();
 
             var packPath = BundlesLoadService.BundlesPath("blueprints-pack.bbp");
             var outputPath = Path.Combine(modEntry.Path, "blueprints.json");

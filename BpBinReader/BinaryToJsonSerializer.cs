@@ -38,7 +38,7 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
             writer.WriteString("$type", schema.TypeId.ToString("N") + ", " + schema?.Name ?? schema?.FullName ?? "");
         }
 
-        foreach (var field in schema!.Fields) {
+        foreach (var field in schema!.SerializedFields) {
             writer.WritePropertyName(field.Name);
             var startPos = m_Reader.BaseStream.Position;
             try {
