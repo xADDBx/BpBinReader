@@ -15,7 +15,9 @@ public class ValueSchema(ValueKind kind) {
     public static ValueSchema Double() => new(ValueKind.Double);
     public static ValueSchema Boolean() => new(ValueKind.Boolean);
     public static ValueSchema String() => new(ValueKind.String);
-    public static ValueSchema EnumInt32() => new(ValueKind.EnumInt32);
+    public static ValueSchema EnumInt32(TypeSchema enumType) => new(ValueKind.EnumInt32) {  ObjectType = enumType };
+
+    public static ValueSchema BlueprintRef() => new(ValueKind.BlueprintRef);
 
     public static ValueSchema UnityObjectRef() => new(ValueKind.UnityObjectRef);
 

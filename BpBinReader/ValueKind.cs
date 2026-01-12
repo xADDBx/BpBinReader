@@ -11,6 +11,8 @@ public enum ValueKind {
     String,
     EnumInt32,
 
+    BlueprintRef,
+
     UnityObjectRef,
 
     Color,
