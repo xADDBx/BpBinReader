@@ -309,7 +309,7 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
                         typeId = Guid.Empty;
                         actualSchema = value.ObjectType;
                     }
-
+                    /*
                     if (value.IsIdentifiedType) {
                         writer.WriteStartObject();
                         // writer.WriteString("$typeId", typeId.ToString("N"));
@@ -317,11 +317,13 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
 
                         writer.WritePropertyName("Data");
                     }
+                    */
                     ReadObjectBodyAsJson(writer, actualSchema, value.IsIdentifiedType);
-
+                    /*
                     if (value.IsIdentifiedType) {
                         writer.WriteEndObject();
                     }
+                    */
                     return;
                 }
 

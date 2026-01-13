@@ -17,6 +17,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
     protected readonly Type SerializeFieldAttributeType;
     protected readonly Type UnityObjectType;
     protected readonly Type JsonIgnoreAttributeType;
+    private readonly Type m_FlagsAttributeType;
     private readonly Type m_AtributeUsageType;
     private readonly Type m_DelegateType;
     protected abstract Type BlueprintReferenceBaseType { get; }
@@ -38,6 +39,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         SerializeFieldAttributeType = RequireType("UnityEngine.SerializeField");
         UnityObjectType = RequireType("UnityEngine.Object");
         JsonIgnoreAttributeType = RequireType("Newtonsoft.Json.JsonIgnoreAttribute");
+        m_FlagsAttributeType = RequireType("System.FlagsAttribute");
         m_AtributeUsageType = RequireType("System.AttributeUsageAttribute");
         m_DelegateType = RequireType("System.Delegate");
     }
@@ -46,11 +48,20 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         var underlyingType = GetRuntimePrimitiveTypeFromMetadataType(Enum.GetUnderlyingType(t.Type));
         object rawValue = Convert.ChangeType(value, underlyingType, CultureInfo.InvariantCulture);
         long convertedValue = Convert.ToInt64(rawValue);
-        var matching = fields
-            .Where(f => (Convert.ToInt64(f.GetRawConstantValue()) & convertedValue) != 0)
-            .Select(f => f.Name);
+        if (HasAttribute(t.Type, m_FlagsAttributeType)) {
+            var matching = fields
+                .Where(f => (Convert.ToInt64(f.GetRawConstantValue()) & convertedValue) != 0)
+                .Select(f => f.Name);
 
-        return string.Join(" | ", matching);
+            return string.Join(" | ", matching);
+        } else {
+            try {
+                return fields.First(f => Convert.ToInt64(f.GetRawConstantValue()) == convertedValue).Name;
+            } catch (Exception) {
+                Console.WriteLine($"{t.Name}, {value}");
+                return "WTF Owlcat";
+            }
+        }
     }
     public TypeSchema Resolve(Guid typeId) {
         if (typeId == Guid.Empty) {
@@ -91,7 +102,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         var fields = GetUnitySerializedFields(type)
             .Select(f => new FieldSchema(f.Name, BuildValueSchema(f.FieldType)))
             .ToArray();
-
+        // Console.WriteLine($"{type.FullName}: [{string.Join(", ", fields.Select(f => f.Name))}]");
         return new TypeSchema(type.Name, type.FullName ?? type.Name, fields, type, typeId);
     }
     protected ValueSchema BuildValueSchema(Type fieldType) {
@@ -179,7 +190,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
 
         return ValueSchema.Object(schema, isIdentifiedType: isIdentified);
     }
-    #endregion
+#endregion
     #region ReflectionHelper
     protected Type RequireType(string fullName) {
         var t = TryGetType(fullName);
@@ -260,12 +271,13 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
                     t = t.BaseType!;
                 } while (inherited && t != null);
             }
+        } else if (member is FieldInfo f && attributeType == NonSerializedAttributeType) {
+#pragma warning disable SYSLIB0050 // Type or member is obsolete
+            return f.IsNotSerialized;
+#pragma warning restore SYSLIB0050 // Type or member is obsolete
         }
         data = FindAttributeType(member.CustomAttributes, attributeType);
-        if (data != null) {
-            return true;
-        }
-        return false;
+        return data != null;
     }
     private CustomAttributeData? FindAttributeType(IEnumerable<CustomAttributeData> attributes, Type attributeType) {
         foreach (var data in attributes) {
