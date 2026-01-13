@@ -1,24 +1,26 @@
-using System.Reflection;
+﻿using System.Reflection;
 
 namespace BpBinReader;
 
-public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchemaProvider {
+public sealed class DarkHeresyTypeSchemaProvider : MetadataLoadContextTypeSchemaProvider {
     private readonly Type m_TypeIdAttributeType;
     private readonly Type m_ExcludeFieldFromBuildAttributeType;
     private readonly Type m_ModsPatchSerializableAttributeType;
     private readonly Type m_SimpleBlueprintType;
     private readonly Type m_BlueprintComponentType;
     private readonly Type m_ElementType;
+    private readonly Type m_SerializeReferenceAttributeType;
     protected override Type BlueprintReferenceBaseType { get; }
 
-    public RogueTraderTypeSchemaProvider(IEnumerable<string> assemblyDirectoryPaths) : base(assemblyDirectoryPaths) {
-        m_TypeIdAttributeType = RequireType("Kingmaker.Blueprints.JsonSystem.Helpers.TypeIdAttribute");
+    public DarkHeresyTypeSchemaProvider(IEnumerable<string> assemblyDirectoryPaths) : base(assemblyDirectoryPaths) {
+        m_TypeIdAttributeType = RequireType("Owlcat.Runtime.Core.Utility.TypeIdAttribute");
         m_ExcludeFieldFromBuildAttributeType = RequireType("Kingmaker.Blueprints.JsonSystem.Helpers.ExcludeFieldFromBuildAttribute");
         m_ModsPatchSerializableAttributeType = RequireType("Kingmaker.Blueprints.JsonSystem.Helpers.ModsPatchSerializableAttribute");
         BlueprintReferenceBaseType = RequireType("Kingmaker.Blueprints.BlueprintReferenceBase");
         m_SimpleBlueprintType = RequireType("Kingmaker.Blueprints.SimpleBlueprint");
         m_BlueprintComponentType = RequireType("Kingmaker.Blueprints.BlueprintComponent");
         m_ElementType = RequireType("Kingmaker.ElementsSystem.Element");
+        m_SerializeReferenceAttributeType = RequireType("UnityEngine.SerializeReference");
 
         foreach (var t in TypeByFullName.Values) {
             GetAttribute(t, m_TypeIdAttributeType, out var attr);
@@ -32,7 +34,24 @@ public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchem
             }
         }
     }
+    protected override TypeSchema BuildSchema(Type type, Guid typeId) {
+        var fields = GetUnitySerializedFields(type)
+            .Select(f => {
+                var candidateType = f.FieldType;
+                if (candidateType.IsArray) {
+                    candidateType = candidateType.GetElementType();
+                } else if (IsList(candidateType)) {
+                    candidateType = candidateType.GetGenericArguments()[0];
+                }
 
+                var forceNeedsType = HasAttribute(f, m_SerializeReferenceAttributeType) && candidateType != null && HasAttribute(candidateType, m_TypeIdAttributeType);
+
+                return new FieldSchema(f.Name, BuildValueSchema(f.FieldType, forceNeedsType));
+            })
+            .ToArray();
+        // Console.WriteLine($"{type.FullName}: [{string.Join(", ", fields.Select(f => f.Name))}]");
+        return new TypeSchema(type.Name, type.FullName ?? type.Name, fields, type, typeId);
+    }
     protected override IEnumerable<FieldInfo> InternalGetUnitySerializedFields(Type type) {
         return FieldsContractResolver_GetUnitySerializedFields(type)
             .Where(f => !HasAttribute(f, JsonIgnoreAttributeType))

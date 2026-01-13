@@ -134,17 +134,11 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
     protected abstract IEnumerable<FieldInfo> InternalGetUnitySerializedFields(Type type);
     // ReflectionBasedSerializer.IsIdentifiedType
     protected abstract bool IsIdentifiedType(Type type);
+    protected abstract TypeSchema BuildSchema(Type type, Guid typeId);
     #endregion
     #region SchemaBuilderBase
-    protected TypeSchema BuildSchema(Type type, Guid typeId) {
-        var fields = GetUnitySerializedFields(type)
-            .Select(f => new FieldSchema(f.Name, BuildValueSchema(f.FieldType)))
-            .ToArray();
-        // Console.WriteLine($"{type.FullName}: [{string.Join(", ", fields.Select(f => f.Name))}]");
-        return new TypeSchema(type.Name, type.FullName ?? type.Name, fields, type, typeId);
-    }
 
-    protected ValueSchema BuildValueSchema(Type fieldType) {
+    protected ValueSchema BuildValueSchema(Type fieldType, bool forceNeedsType = false) {
         if (fieldType == m_Int32Type) {
             return ValueSchema.Int32();
         }
@@ -208,12 +202,12 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
             var elementType = fieldType.GetElementType()
                 ?? throw new NotSupportedException($"Array element type missing for {fieldType.FullName ?? fieldType.Name}.");
 
-            return ValueSchema.Array(BuildValueSchema(elementType));
+            return ValueSchema.Array(BuildValueSchema(elementType, forceNeedsType));
         }
 
         if (IsList(fieldType)) {
             var elementType = fieldType.GetGenericArguments()[0];
-            return ValueSchema.List(BuildValueSchema(elementType));
+            return ValueSchema.List(BuildValueSchema(elementType, forceNeedsType));
         }
 
         if (IsOrSubclassOf(fieldType, UnityObjectType)) {
@@ -226,12 +220,14 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
 
         var isIdentified = IsIdentifiedType(fieldType);
 
-        var schema = new TypeSchema(fieldType.Name, fieldType.FullName ?? fieldType.Name, [], typeof(object), default);
-        if (!isIdentified) {
+        TypeSchema schema;
+        if (isIdentified) {
+            schema = new TypeSchema(fieldType.Name, fieldType.FullName ?? fieldType.Name, [], typeof(object), default);
+        } else {
             schema = BuildSchema(fieldType, default);
         }
 
-        return ValueSchema.Object(schema, isIdentifiedType: isIdentified);
+        return ValueSchema.Object(schema, isIdentified, forceNeedsType);
     }
     #endregion
     #region ReflectionHelper

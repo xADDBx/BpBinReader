@@ -299,7 +299,7 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
                     Guid typeId;
                     TypeSchema? actualSchema;
 
-                    if (value.IsIdentifiedType) {
+                    if (value.IsIdentifiedType || value.ForceNeedsType) {
                         typeId = ReadTypeId();
                         if (typeId == Guid.Empty) {
                             writer.WriteNullValue();

@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace BpBinReader;
@@ -13,7 +14,7 @@ public static class BinaryToJsonConverter {
         var toc = ReadToc(packStream);
 
         using var reader = new BinaryReader(packStream, Encoding.UTF8, leaveOpen: true);
-        var options = new JsonWriterOptions { Indented = true };
+        var options = new JsonWriterOptions { Indented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
         using var ms = new MemoryStream();
         using var writer = new Utf8JsonWriterWrapper(new Utf8JsonWriter(ms, options));
         writer.WriteStartObject();

@@ -6,6 +6,7 @@ public class ValueSchema(ValueKind kind) {
     public ValueSchema? Element { get; private set; }
     public TypeSchema? ObjectType { get; private set; }
     public bool IsIdentifiedType { get; private set; }
+    public bool ForceNeedsType { get; private set; }
 
     public static ValueSchema Int32() => new(ValueKind.Int32);
     public static ValueSchema UInt32() => new(ValueKind.UInt32);
@@ -34,7 +35,7 @@ public class ValueSchema(ValueKind kind) {
     public static ValueSchema Array(ValueSchema element) => new(ValueKind.Array) { Element = element };
     public static ValueSchema List(ValueSchema element) => new(ValueKind.List) { Element = element };
 
-    public static ValueSchema Object(TypeSchema objectType, bool isIdentifiedType) {
-        return new(ValueKind.Object) { ObjectType = objectType, IsIdentifiedType = isIdentifiedType };
+    public static ValueSchema Object(TypeSchema objectType, bool isIdentifiedType, bool forceNeedsType = false) {
+        return new(ValueKind.Object) { ObjectType = objectType, IsIdentifiedType = isIdentifiedType, ForceNeedsType = forceNeedsType };
     }
 }
