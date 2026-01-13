@@ -8,10 +8,10 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
     protected readonly MetadataLoadContext Mlc;
     protected readonly Dictionary<Guid, TypeSchema> TypeSchemaCache = [];
     protected readonly Dictionary<Guid, Type> TypeById = [];
-    protected readonly Dictionary<string, Type> TypeByFullName = []; 
+    protected readonly Dictionary<string, Type> TypeByFullName = [];
     private readonly Dictionary<(MemberInfo, Type?), (CustomAttributeData?, bool)> m_AttributeCache = [];
     private readonly Dictionary<(Type, Type), bool> m_IsOrSubclassOfCache = [];
-    private readonly Dictionary<Type, bool> m_IsListCache = []; 
+    private readonly Dictionary<Type, bool> m_IsListCache = [];
     protected readonly Type NonSerializedAttributeType;
     protected readonly Type SerializableAttributeType;
     protected readonly Type SerializeFieldAttributeType;
@@ -20,6 +20,26 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
     private readonly Type m_FlagsAttributeType;
     private readonly Type m_AtributeUsageType;
     private readonly Type m_DelegateType;
+
+    private readonly Type m_Int32Type;
+    private readonly Type m_UInt32Type;
+    private readonly Type m_Int64Type;
+    private readonly Type m_UInt64Type;
+    private readonly Type m_SingleType;
+    private readonly Type m_DoubleType;
+    private readonly Type m_BooleanType;
+    private readonly Type m_StringType;
+
+    private readonly Type m_ColorType;
+    private readonly Type m_Color32Type;
+    private readonly Type m_Vector2Type;
+    private readonly Type m_Vector3Type;
+    private readonly Type m_Vector4Type;
+    private readonly Type m_Vector2IntType;
+    private readonly Type m_GradientType;
+    private readonly Type m_AnimationCurveType;
+    private readonly Type m_ColorBlockType;
+
     protected abstract Type BlueprintReferenceBaseType { get; }
     public MetadataLoadContextTypeSchemaProvider(IEnumerable<string> assemblyDirectoryPaths) {
         var resolver = new PathAssemblyResolver(assemblyDirectoryPaths.SelectMany(Directory.EnumerateFiles));
@@ -35,13 +55,32 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
             }
         }
         NonSerializedAttributeType = RequireType("System.NonSerializedAttribute");
-        SerializableAttributeType = RequireType("System.SerializableAttribute"); 
+        SerializableAttributeType = RequireType("System.SerializableAttribute");
         SerializeFieldAttributeType = RequireType("UnityEngine.SerializeField");
         UnityObjectType = RequireType("UnityEngine.Object");
         JsonIgnoreAttributeType = RequireType("Newtonsoft.Json.JsonIgnoreAttribute");
         m_FlagsAttributeType = RequireType("System.FlagsAttribute");
         m_AtributeUsageType = RequireType("System.AttributeUsageAttribute");
         m_DelegateType = RequireType("System.Delegate");
+
+        m_Int32Type = RequireType("System.Int32");
+        m_UInt32Type = RequireType("System.UInt32");
+        m_Int64Type = RequireType("System.Int64");
+        m_UInt64Type = RequireType("System.UInt64");
+        m_SingleType = RequireType("System.Single");
+        m_DoubleType = RequireType("System.Double");
+        m_BooleanType = RequireType("System.Boolean");
+        m_StringType = RequireType("System.String");
+
+        m_ColorType = RequireType("UnityEngine.Color");
+        m_Color32Type = RequireType("UnityEngine.Color32");
+        m_Vector2Type = RequireType("UnityEngine.Vector2");
+        m_Vector3Type = RequireType("UnityEngine.Vector3");
+        m_Vector4Type = RequireType("UnityEngine.Vector4");
+        m_Vector2IntType = RequireType("UnityEngine.Vector2Int");
+        m_GradientType = RequireType("UnityEngine.Gradient");
+        m_AnimationCurveType = RequireType("UnityEngine.AnimationCurve");
+        m_ColorBlockType = RequireType("UnityEngine.UI.ColorBlock");
     }
     public string GetEnumName(TypeSchema t, object value) {
         var fields = t.Type.GetFields(BindingFlags.Public | BindingFlags.Static);
@@ -58,8 +97,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
             try {
                 return fields.First(f => Convert.ToInt64(f.GetRawConstantValue()) == convertedValue).Name;
             } catch (Exception) {
-                Console.WriteLine($"{t.Name}, {value}");
-                return "WTF Owlcat";
+                return "Unset";
             }
         }
     }
@@ -105,31 +143,30 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         // Console.WriteLine($"{type.FullName}: [{string.Join(", ", fields.Select(f => f.Name))}]");
         return new TypeSchema(type.Name, type.FullName ?? type.Name, fields, type, typeId);
     }
-    protected ValueSchema BuildValueSchema(Type fieldType) {
-        var fn = fieldType.FullName ?? fieldType.Name;
 
-        if (fn == "System.Int32") {
+    protected ValueSchema BuildValueSchema(Type fieldType) {
+        if (fieldType == m_Int32Type) {
             return ValueSchema.Int32();
         }
-        if (fn == "System.UInt32") {
+        if (fieldType == m_UInt32Type) {
             return ValueSchema.UInt32();
         }
-        if (fn == "System.Int64") {
+        if (fieldType == m_Int64Type) {
             return ValueSchema.Int64();
         }
-        if (fn == "System.UInt64") {
+        if (fieldType == m_UInt64Type) {
             return ValueSchema.UInt64();
         }
-        if (fn == "System.Single") {
+        if (fieldType == m_SingleType) {
             return ValueSchema.Single();
         }
-        if (fn == "System.Double") {
+        if (fieldType == m_DoubleType) {
             return ValueSchema.Double();
         }
-        if (fn == "System.Boolean") {
+        if (fieldType == m_BooleanType) {
             return ValueSchema.Boolean();
         }
-        if (fn == "System.String") {
+        if (fieldType == m_StringType) {
             return ValueSchema.String();
         }
 
@@ -139,31 +176,37 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
             return ValueSchema.EnumInt32(enumSchema);
         }
 
-        // Unity special structs by name.
-        switch (fn) {
-            case "UnityEngine.Color":
-                return ValueSchema.Color();
-            case "UnityEngine.Color32":
-                return ValueSchema.Color32();
-            case "UnityEngine.Vector2":
-                return ValueSchema.Vector2();
-            case "UnityEngine.Vector3":
-                return ValueSchema.Vector3();
-            case "UnityEngine.Vector4":
-                return ValueSchema.Vector4();
-            case "UnityEngine.Vector2Int":
-                return ValueSchema.Vector2Int();
-            case "UnityEngine.Gradient":
-                return ValueSchema.Gradient();
-            case "UnityEngine.AnimationCurve":
-                return ValueSchema.AnimationCurve();
-            case "UnityEngine.UI.ColorBlock":
-                return ValueSchema.ColorBlock();
+        if (fieldType == m_ColorType) {
+            return ValueSchema.Color();
+        }
+        if (fieldType == m_Color32Type) {
+            return ValueSchema.Color32();
+        }
+        if (fieldType == m_Vector2Type) {
+            return ValueSchema.Vector2();
+        }
+        if (fieldType == m_Vector3Type) {
+            return ValueSchema.Vector3();
+        }
+        if (fieldType == m_Vector4Type) {
+            return ValueSchema.Vector4();
+        }
+        if (fieldType == m_Vector2IntType) {
+            return ValueSchema.Vector2Int();
+        }
+        if (fieldType == m_GradientType) {
+            return ValueSchema.Gradient();
+        }
+        if (fieldType == m_AnimationCurveType) {
+            return ValueSchema.AnimationCurve();
+        }
+        if (fieldType == m_ColorBlockType) {
+            return ValueSchema.ColorBlock();
         }
 
         if (fieldType.IsArray) {
             var elementType = fieldType.GetElementType()
-                ?? throw new NotSupportedException($"Array element type missing for {fn}.");
+                ?? throw new NotSupportedException($"Array element type missing for {fieldType.FullName ?? fieldType.Name}.");
 
             return ValueSchema.Array(BuildValueSchema(elementType));
         }
@@ -190,7 +233,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
 
         return ValueSchema.Object(schema, isIdentifiedType: isIdentified);
     }
-#endregion
+    #endregion
     #region ReflectionHelper
     protected Type RequireType(string fullName) {
         var t = TryGetType(fullName);
@@ -279,6 +322,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         data = FindAttributeType(member.CustomAttributes, attributeType);
         return data != null;
     }
+
     private CustomAttributeData? FindAttributeType(IEnumerable<CustomAttributeData> attributes, Type attributeType) {
         foreach (var data in attributes) {
             try {

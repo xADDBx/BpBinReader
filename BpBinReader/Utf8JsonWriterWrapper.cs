@@ -10,7 +10,17 @@ public class Utf8JsonWriterWrapper(Utf8JsonWriter writer) : IDisposable {
     public void WriteStartObject() => m_Writer.WriteStartObject();
     public void WriteEndObject() => m_Writer.WriteEndObject();
     public void WriteNullValue() => m_Writer.WriteNullValue();
+    public void WriteNumber(string propertyName, ulong value) {
+        var toWrite = value.ToString("D", CultureInfo.InvariantCulture);
+        m_Writer.WritePropertyName(propertyName);
+        m_Writer.WriteRawValue(toWrite);
+    }
     public void WriteNumber(string propertyName, long value) {
+        var toWrite = value.ToString("D", CultureInfo.InvariantCulture);
+        m_Writer.WritePropertyName(propertyName);
+        m_Writer.WriteRawValue(toWrite);
+    }
+    public void WriteNumber(string propertyName, uint value) {
         var toWrite = value.ToString("D", CultureInfo.InvariantCulture);
         m_Writer.WritePropertyName(propertyName);
         m_Writer.WriteRawValue(toWrite);
@@ -39,7 +49,15 @@ public class Utf8JsonWriterWrapper(Utf8JsonWriter writer) : IDisposable {
         }
     }
     public void WriteBoolean(string propertyName, bool value) => m_Writer.WriteBoolean(propertyName, value);
+    public void WriteNumberValue(ulong value) {
+        var toWrite = value.ToString("D", CultureInfo.InvariantCulture);
+        m_Writer.WriteRawValue(toWrite);
+    }
     public void WriteNumberValue(long value) {
+        var toWrite = value.ToString("D", CultureInfo.InvariantCulture);
+        m_Writer.WriteRawValue(toWrite);
+    }
+    public void WriteNumberValue(uint value) {
         var toWrite = value.ToString("D", CultureInfo.InvariantCulture);
         m_Writer.WriteRawValue(toWrite);
     }
