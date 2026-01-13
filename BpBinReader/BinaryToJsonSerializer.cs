@@ -3,6 +3,7 @@
 public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaProvider schemaProvider) {
     private readonly BinaryReader m_Reader = reader;
     private readonly ITypeSchemaProvider m_SchemaProvider = schemaProvider;
+    private readonly byte[] m_TypeIdBuffer = new byte[16];
 
     public void ReadBlueprintAsJson(Utf8JsonWriterWrapper writer) {
         var rootTypeId = ReadTypeId();
@@ -333,12 +334,12 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
     }
 
     private Guid ReadTypeId() {
-        var bytes = m_Reader.ReadBytes(16);
-        if (bytes.Length != 16) {
+        var read = m_Reader.Read(m_TypeIdBuffer, 0, 16);
+        if (read != 16) {
             throw new EndOfStreamException("Unexpected EOF while reading TypeId.");
         }
 
-        var g = new Guid(bytes);
+        var g = new Guid(m_TypeIdBuffer);
         return g == Guid.Empty ? Guid.Empty : g;
     }
 }
