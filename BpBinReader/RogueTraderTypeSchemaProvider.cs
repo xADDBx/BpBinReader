@@ -20,17 +20,15 @@ public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchem
         m_BlueprintComponentType = RequireType("Kingmaker.Blueprints.BlueprintComponent");
         m_ElementType = RequireType("Kingmaker.ElementsSystem.Element");
 
-        foreach (var asm in TypeByFullName.Values.Select(t => t.Assembly).Distinct()) {
-            foreach (var t in SafeGetTypes(asm)) {
-                GetAttribute(t, m_TypeIdAttributeType, out var attr);
-                if (attr != null) {
-                    string? guid = attr.ConstructorArguments[0].Value as string;
-                    if (string.IsNullOrWhiteSpace(guid)) {
-                        continue;
-                    }
-
-                    TypeById[new(guid)] = t;
+        foreach (var t in TypeByFullName.Values) {
+            GetAttribute(t, m_TypeIdAttributeType, out var attr);
+            if (attr != null) {
+                string? guid = attr.ConstructorArguments[0].Value as string;
+                if (string.IsNullOrWhiteSpace(guid)) {
+                    continue;
                 }
+
+                TypeById[new(guid)] = t;
             }
         }
     }
