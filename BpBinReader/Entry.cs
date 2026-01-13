@@ -7,10 +7,10 @@ public class Entry {
             Console.WriteLine("Usage: BpBinReader <basePath>");
             Console.WriteLine("  <basePath> The base path to the game installation.");
 
-            // return;
+            return;
         }
-        // var basePath = args[0];
-        var basePath = "D:\\Games\\Steam\\steamapps\\common\\Warhammer 40,000 Rogue Trader";
+        var basePath = args[0];
+        // var basePath = "D:\\Games\\Steam\\steamapps\\common\\Warhammer 40,000 Rogue Trader";
         try {
             var schemaProvider = new RogueTraderTypeSchemaProvider([Path.Combine(basePath, "WH40KRT_Data", "Managed")]);
 
