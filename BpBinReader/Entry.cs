@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace BpBinReader;
@@ -19,6 +20,7 @@ public class Entry {
         }
         var basePath = args[0];
         try {
+            var sw = Stopwatch.StartNew();
             var schemaProvider = new RogueTraderTypeSchemaProvider([Path.Combine(basePath, "WH40KRT_Data", "Managed")]);
 
             var packPath = Path.Combine(basePath, "Bundles", "blueprints-pack.bbp");
@@ -26,7 +28,7 @@ public class Entry {
 
             BinaryToJsonConverter.DumpBlueprintPackToJson(packPath, outputPath, schemaProvider);
 
-            Console.WriteLine($"Wrote {outputPath}");
+            Console.WriteLine($"Wrote {outputPath} in {sw.ElapsedMilliseconds}ms");
         }
         catch (Exception ex) {
             Console.WriteLine(ex.ToString());
@@ -38,7 +40,7 @@ public class Entry {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 var rogueTraderDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "Low", "Owlcat Games", "Warhammer 40000 Rogue Trader", "Player.log");
                 string lineToFind = "Mono path[0]";
-                string line = null;
+                string? line = null;
                 foreach (var lineIter in File.ReadLines(rogueTraderDataPath)) {
                     if (lineIter.Contains(lineToFind)) {
                         line = lineIter;
@@ -46,7 +48,7 @@ public class Entry {
                     }
                 }
                 string monoPathRegex = @"^Mono path\[0\] = '(.*?)/WH40KRT_Data/Managed'$";
-                Match match = Regex.Match(line, monoPathRegex);
+                Match match = Regex.Match(line!, monoPathRegex);
                 if (match.Success) {
                     return match.Groups[1].Value;
                 }
