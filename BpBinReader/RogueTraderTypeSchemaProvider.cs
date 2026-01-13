@@ -1,56 +1,35 @@
 using System.Reflection;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BpBinReader;
 
 public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchemaProvider {
     private readonly Type m_TypeIdAttributeType;
-    private readonly PropertyInfo m_TypeIdGuidProp;
-
     private readonly Type m_ExcludeFieldFromBuildAttributeType;
-    private readonly Type m_JsonIgnoreAttributeType;
-    private readonly Type m_SerializeFieldAttributeType;
-    private readonly Type m_NonSerializedAttributeType;
-    private readonly Type m_SerializableAttributeType;
     private readonly Type m_ModsPatchSerializableAttributeType;
-
-    protected override Type m_UnityObjectType { get; }
-    protected override Type m_BlueprintReferenceBaseType { get; }
-
     private readonly Type m_SimpleBlueprintType;
     private readonly Type m_BlueprintComponentType;
     private readonly Type m_ElementType;
+    protected override Type BlueprintReferenceBaseType { get; }
 
     public RogueTraderTypeSchemaProvider(IEnumerable<string> assemblyDirectoryPaths) : base(assemblyDirectoryPaths) {
         m_TypeIdAttributeType = RequireType("Kingmaker.Blueprints.JsonSystem.Helpers.TypeIdAttribute");
-        m_TypeIdGuidProp = m_TypeIdAttributeType.GetProperty("Guid", BindingFlags.Instance | BindingFlags.Public) ?? throw new InvalidOperationException("TypeIdAttribute.Guid property not found.");
-
-
         m_ExcludeFieldFromBuildAttributeType = RequireType("Kingmaker.Blueprints.JsonSystem.Helpers.ExcludeFieldFromBuildAttribute");
-        m_JsonIgnoreAttributeType = RequireType("Newtonsoft.Json.JsonIgnoreAttribute");
         m_ModsPatchSerializableAttributeType = RequireType("Kingmaker.Blueprints.JsonSystem.Helpers.ModsPatchSerializableAttribute");
-        m_SerializeFieldAttributeType = RequireType("UnityEngine.SerializeField");
-        m_NonSerializedAttributeType = RequireType("System.NonSerializedAttribute");
-        m_SerializableAttributeType = RequireType("System.SerializableAttribute");
-
-        m_UnityObjectType = RequireType("UnityEngine.Object");
-        m_BlueprintReferenceBaseType = RequireType("Kingmaker.Blueprints.BlueprintReferenceBase");
-
+        BlueprintReferenceBaseType = RequireType("Kingmaker.Blueprints.BlueprintReferenceBase");
         m_SimpleBlueprintType = RequireType("Kingmaker.Blueprints.SimpleBlueprint");
         m_BlueprintComponentType = RequireType("Kingmaker.Blueprints.BlueprintComponent");
         m_ElementType = RequireType("Kingmaker.ElementsSystem.Element");
 
-        foreach (var asm in m_TypeByFullName.Values.Select(t => t.Assembly).Distinct()) {
+        foreach (var asm in TypeByFullName.Values.Select(t => t.Assembly).Distinct()) {
             foreach (var t in SafeGetTypes(asm)) {
-                var attr = GetAttribute(t, m_TypeIdAttributeType);
+                GetAttribute(t, m_TypeIdAttributeType, out var attr);
                 if (attr != null) {
-
                     string? guid = attr.ConstructorArguments[0].Value as string;
                     if (string.IsNullOrWhiteSpace(guid)) {
                         continue;
                     }
 
-                    m_TypeById[new(guid)] = t;
+                    TypeById[new(guid)] = t;
                 }
             }
         }
@@ -58,7 +37,7 @@ public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchem
 
     protected override IEnumerable<FieldInfo> InternalGetUnitySerializedFields(Type type) {
         return FieldsContractResolver_GetUnitySerializedFields(type)
-            .Where(f => !HasAttribute(f, m_JsonIgnoreAttributeType))
+            .Where(f => !HasAttribute(f, JsonIgnoreAttributeType))
             .Where(f => !HasAttribute(f, m_ExcludeFieldFromBuildAttributeType));
     }
     private IEnumerable<FieldInfo> FieldsContractResolver_GetUnitySerializedFields(Type type) {
@@ -67,8 +46,8 @@ public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchem
             allFields.AddRange(FieldsContractResolver_GetUnitySerializedFields(type.BaseType));
         }
         allFields.AddRange(type.GetFields(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-            .Where(f => f.IsPublic || HasAttribute(f, m_SerializeFieldAttributeType))
-            .Where(f => !HasAttribute(f, m_NonSerializedAttributeType))
+            .Where(f => f.IsPublic || HasAttribute(f, SerializeFieldAttributeType))
+            .Where(f => !HasAttribute(f, NonSerializedAttributeType))
             .Where(f => FieldsContractResolver_IsSerializableType(f, f.FieldType, true)));
         return allFields;
     }
@@ -82,7 +61,7 @@ public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchem
             return true;
         }
 
-        if (IsOrSubclassOf(fieldType, m_UnityObjectType)) {
+        if (IsOrSubclassOf(fieldType, UnityObjectType)) {
             return true;
         }
 
@@ -117,9 +96,8 @@ public sealed class RogueTraderTypeSchemaProvider : MetadataLoadContextTypeSchem
             return FieldsContractResolver_IsSerializableType(field, fieldType.GetGenericArguments()[0], false);
         }
 
-        if (HasAttribute(fieldType, m_SerializableAttributeType)) {
+        if (HasAttribute(fieldType, SerializableAttributeType)) {
             var asmName = fieldType.Assembly.GetName().Name;
-            Console.WriteLine($"{asmName}");
             return !string.Equals(asmName, "mscorlib", StringComparison.OrdinalIgnoreCase);
         }
 

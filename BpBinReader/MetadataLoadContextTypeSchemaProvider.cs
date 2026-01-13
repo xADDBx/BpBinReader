@@ -1,29 +1,45 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using System.Reflection;
 
 namespace BpBinReader;
 
 public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvider, IDisposable {
-    protected readonly MetadataLoadContext m_Mlc;
-    protected readonly Dictionary<Guid, TypeSchema> m_TypeSchemaCache = [];
-    protected readonly Dictionary<Guid, Type> m_TypeById = [];
-    protected readonly Dictionary<string, Type> m_TypeByFullName = [];
-    protected abstract Type m_UnityObjectType { get; }
-    protected abstract Type m_BlueprintReferenceBaseType { get; }
+    protected readonly MetadataLoadContext Mlc;
+    protected readonly Dictionary<Guid, TypeSchema> TypeSchemaCache = [];
+    protected readonly Dictionary<Guid, Type> TypeById = [];
+    protected readonly Dictionary<string, Type> TypeByFullName = []; 
+    private readonly Dictionary<(MemberInfo, Type?), (CustomAttributeData?, bool)> m_AttributeCache = [];
+    private readonly Dictionary<(Type, Type), bool> m_IsOrSubclassOfCache = [];
+    private readonly Dictionary<Type, bool> m_IsListCache = []; 
+    protected readonly Type NonSerializedAttributeType;
+    protected readonly Type SerializableAttributeType;
+    protected readonly Type SerializeFieldAttributeType;
+    protected readonly Type UnityObjectType;
+    protected readonly Type JsonIgnoreAttributeType;
+    private readonly Type m_AtributeUsageType;
+    private readonly Type m_DelegateType;
+    protected abstract Type BlueprintReferenceBaseType { get; }
     public MetadataLoadContextTypeSchemaProvider(IEnumerable<string> assemblyDirectoryPaths) {
         var resolver = new PathAssemblyResolver(assemblyDirectoryPaths.SelectMany(Directory.EnumerateFiles));
-        m_Mlc = new MetadataLoadContext(resolver);
+        Mlc = new MetadataLoadContext(resolver);
 
         // Load all requested assemblies into the MLC.
         foreach (var p in assemblyDirectoryPaths.SelectMany(dir => Directory.EnumerateFiles(dir, "*.dll"))) {
-            var asm = m_Mlc.LoadFromAssemblyPath(p);
+            var asm = Mlc.LoadFromAssemblyPath(p);
             foreach (var t in SafeGetTypes(asm)) {
-                if (t.FullName != null && !m_TypeByFullName.ContainsKey(t.FullName)) {
-                    m_TypeByFullName[t.FullName] = t;
+                if (t.FullName != null && !TypeByFullName.ContainsKey(t.FullName)) {
+                    TypeByFullName[t.FullName] = t;
                 }
             }
         }
-
+        NonSerializedAttributeType = RequireType("System.NonSerializedAttribute");
+        SerializableAttributeType = RequireType("System.SerializableAttribute"); 
+        SerializeFieldAttributeType = RequireType("UnityEngine.SerializeField");
+        UnityObjectType = RequireType("UnityEngine.Object");
+        JsonIgnoreAttributeType = RequireType("Newtonsoft.Json.JsonIgnoreAttribute");
+        m_AtributeUsageType = RequireType("System.AttributeUsageAttribute");
+        m_DelegateType = RequireType("System.Delegate");
     }
     public string GetEnumName(TypeSchema t, object value) {
         var fields = t.Type.GetFields(BindingFlags.Public | BindingFlags.Static);
@@ -41,20 +57,20 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
             throw new ArgumentException("TypeId is empty.", nameof(typeId));
         }
 
-        if (!m_TypeById.TryGetValue(typeId, out var t)) {
+        if (!TypeById.TryGetValue(typeId, out var t)) {
             throw new KeyNotFoundException($"TypeId {typeId:N} was not found in provided assemblies.");
         }
 
-        if (!m_TypeSchemaCache.TryGetValue(typeId, out var schema)) {
+        if (!TypeSchemaCache.TryGetValue(typeId, out var schema)) {
             schema = BuildSchema(t, typeId);
-            m_TypeSchemaCache[typeId] = schema;
+            TypeSchemaCache[typeId] = schema;
         }
 
         return schema;
     }
 
     public void Dispose() {
-        m_Mlc.Dispose();
+        Mlc.Dispose();
     }
     #region GameSpecific
     // Re-implement ReflectionBasedSerializer.GenericObject call chain
@@ -146,11 +162,11 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
             return ValueSchema.List(BuildValueSchema(elementType));
         }
 
-        if (IsOrSubclassOf(fieldType, m_UnityObjectType)) {
+        if (IsOrSubclassOf(fieldType, UnityObjectType)) {
             return ValueSchema.UnityObjectRef();
         }
 
-        if (IsOrSubclassOf(fieldType, m_BlueprintReferenceBaseType)) {
+        if (IsOrSubclassOf(fieldType, BlueprintReferenceBaseType)) {
             return ValueSchema.BlueprintRef();
         }
 
@@ -174,31 +190,87 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
     }
 
     private Type? TryGetType(string fullName) {
-        if (m_TypeByFullName.TryGetValue(fullName, out var t)) {
+        if (TypeByFullName.TryGetValue(fullName, out var t)) {
             return t;
         }
         return null;
     }
-    protected static bool IsList(Type t) {
-        if (!t.IsGenericType) {
+    protected bool IsList(Type t) {
+        if (!m_IsListCache.TryGetValue(t, out var result)) {
+            if (!t.IsGenericType) {
+                return false;
+            }
+
+            var def = t.GetGenericTypeDefinition();
+            result = def.FullName == "System.Collections.Generic.List`1";
+            m_IsListCache[t] = result;
+        }
+        return result;
+    }
+
+    protected bool HasAttribute(MemberInfo member, Type? attributeType) {
+        return GetAttribute(member, attributeType, out _);
+    }
+    protected bool GetAttribute(MemberInfo member, Type? attributeType, out CustomAttributeData? data, bool? inherit = null) {
+        var key = (member, attributeType);
+        bool result;
+        if (m_AttributeCache.TryGetValue(key, out var cached)) {
+            data = cached.Item1;
+            result = cached.Item2;
+        } else {
+            result = InternalGetAttribute(member, attributeType, out data, inherit);
+            m_AttributeCache[key] = (data, result);
+        }
+        return result;
+    }
+    private bool InternalGetAttribute(MemberInfo member, Type? attributeType, out CustomAttributeData? data, bool? inherit = null) {
+        data = null;
+        if (attributeType == null) {
+            data = null;
             return false;
         }
-
-        var def = t.GetGenericTypeDefinition();
-        return def.FullName == "System.Collections.Generic.List`1";
-    }
-
-    protected static bool HasAttribute(MemberInfo member, Type? attributeType) {
-        return GetAttribute(member, attributeType) != null;
-    }
-
-    protected static CustomAttributeData? GetAttribute(MemberInfo member, Type? attributeType) {
-        if (attributeType == null) {
-            return null;
+        if (member is Type t) {
+            if (attributeType == SerializableAttributeType) {
+#pragma warning disable SYSLIB0050 // Type or member is obsolete
+                if (t.IsSerializable && !IsOrSubclassOf(t.UnderlyingSystemType, m_DelegateType)) {
+                    return true;
+                }
+#pragma warning restore SYSLIB0050 // Type or member is obsolete
+            } else {
+                bool inherited = true;
+                if (!inherit.HasValue) {
+                    GetAttribute(attributeType, m_AtributeUsageType, out var usage, true);
+                    if (usage == null) {
+                        throw new InvalidOperationException($"AttributeUsageAttribute not found on attribute type '{t.FullName}'.");
+                    }
+                    foreach (var arg in usage.NamedArguments) {
+                        if (arg.MemberName == nameof(AttributeUsageAttribute.Inherited)) {
+                            inherited = arg.TypedValue.Value as bool? ?? true;
+                            break;
+                        }
+                    }
+                } else {
+                    inherited = inherit.Value;
+                }
+                do {
+                    data = FindAttributeType(t.CustomAttributes, attributeType);
+                    if (data != null) {
+                        return true;
+                    }
+                    t = t.BaseType!;
+                } while (inherited && t != null);
+            }
         }
-        foreach (var data in member.CustomAttributes) {
+        data = FindAttributeType(member.CustomAttributes, attributeType);
+        if (data != null) {
+            return true;
+        }
+        return false;
+    }
+    private CustomAttributeData? FindAttributeType(IEnumerable<CustomAttributeData> attributes, Type attributeType) {
+        foreach (var data in attributes) {
             try {
-                if (data.AttributeType.FullName == attributeType.FullName) {
+                if (data.AttributeType == attributeType) {
                     return data;
                 }
             } // i18n type I think
@@ -206,13 +278,17 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         }
         return null;
     }
-
-    protected static bool IsOrSubclassOf(Type t, Type baseType) {
-        if (t == baseType) {
-            return true;
+    protected bool IsOrSubclassOf(Type t, Type baseType) {
+        var key = (t, baseType);
+        if (!m_IsOrSubclassOfCache.TryGetValue(key, out var result)) {
+            if (t == baseType) {
+                result = true;
+            } else {
+                result = t.IsSubclassOf(baseType);
+            }
+            m_IsOrSubclassOfCache[key] = result;
         }
-
-        return t.IsSubclassOf(baseType);
+        return result;
     }
     protected static IEnumerable<Type> SafeGetTypes(Assembly asm) {
         try {
