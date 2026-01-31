@@ -64,8 +64,9 @@ public class Entry {
                 default: throw new NotSupportedException($"Game type {gameType} is not supported.");
             }
             var packPath = Path.Combine(basePath, "Bundles", "blueprints-pack.bbp");
+            var assetsPath = Path.Combine(basePath, "Bundles", "blueprint.assets");
 
-            BinaryToJsonConverter.DumpBlueprintPackToJson(packPath, outputPath, schemaProvider);
+            BinaryToJsonConverter.DumpBlueprintPackToJson(packPath, outputPath, schemaProvider, new(assetsPath));
 
             Console.WriteLine($"Wrote {outputPath} in {sw.ElapsedMilliseconds}ms");
         } catch (Exception ex) {

@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace BpBinReader;
 
 public static class BinaryToJsonConverter {
-    public static void DumpBlueprintPackToJson(string packPath, string outputJsonPath, ITypeSchemaProvider schemaProvider) {
+    public static void DumpBlueprintPackToJson(string packPath, string outputJsonPath, ITypeSchemaProvider schemaProvider, AssetProvider assetProvider) {
         if (!File.Exists(packPath)) {
             throw new FileNotFoundException("Blueprint pack not found.", packPath);
         }
@@ -17,6 +17,7 @@ public static class BinaryToJsonConverter {
         var options = new JsonWriterOptions { Indented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
         using var ms = new MemoryStream();
         using var writer = new Utf8JsonWriterWrapper(new Utf8JsonWriter(ms, options));
+        var count = 0;
         writer.WriteStartObject();
         writer.WritePropertyName("blueprints");
         writer.WriteStartArray();
@@ -30,8 +31,9 @@ public static class BinaryToJsonConverter {
 
                 packStream.Seek(offset, SeekOrigin.Begin);
 
-                var serializer = new BinaryToJsonBlueprintSerializer(reader, schemaProvider);
+                var serializer = new BinaryToJsonBlueprintSerializer(reader, schemaProvider, assetProvider);
                 serializer.ReadBlueprintAsJson(writer);
+                count++;
             }
             writer.WriteEndArray();
             writer.WriteEndObject();
@@ -39,6 +41,7 @@ public static class BinaryToJsonConverter {
             writer.Flush();
             File.WriteAllText(outputJsonPath, Encoding.UTF8.GetString(ms.ToArray()));
         }
+        Console.WriteLine($"Read {count} Blueprints");
     }
 
     private static Dictionary<string, uint> ReadToc(Stream packStream) {

@@ -1,8 +1,9 @@
 ﻿namespace BpBinReader;
 
-public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaProvider schemaProvider) {
+public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaProvider schemaProvider, AssetProvider assetProvider) {
     private readonly BinaryReader m_Reader = reader;
     private readonly ITypeSchemaProvider m_SchemaProvider = schemaProvider;
+    private readonly AssetProvider m_AssetProvider = assetProvider;
     private readonly byte[] m_TypeIdBuffer = new byte[16];
 
     public void ReadBlueprintAsJson(Utf8JsonWriterWrapper writer) {
@@ -120,7 +121,12 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
                     if (id < 0) {
                         writer.WriteNullValue();
                     } else {
-                        writer.WriteNumberValue(id);
+                        writer.WriteStartObject();
+                        var ids = m_AssetProvider.GetEntryAtIndex(id);
+                        writer.WriteString("AssetId", ids.AssetId);
+                        writer.WriteNumber("FileId", ids.FileId);
+                        writer.WriteNumber("Index", id);
+                        writer.WriteEndObject();
                     }
                     return;
                 }
