@@ -20,22 +20,25 @@ public static class BinaryToJsonConverter {
         writer.WriteStartObject();
         writer.WritePropertyName("blueprints");
         writer.WriteStartArray();
-        foreach (var kvp in toc) {
-            var bpGuid = kvp.Key;
-            var offset = kvp.Value;
-            if (offset == 0) {
-                continue;
+        try {
+            foreach (var kvp in toc) {
+                var bpGuid = kvp.Key;
+                var offset = kvp.Value;
+                if (offset == 0) {
+                    continue;
+                }
+
+                packStream.Seek(offset, SeekOrigin.Begin);
+
+                var serializer = new BinaryToJsonBlueprintSerializer(reader, schemaProvider);
+                serializer.ReadBlueprintAsJson(writer);
             }
-
-            packStream.Seek(offset, SeekOrigin.Begin);
-
-            var serializer = new BinaryToJsonBlueprintSerializer(reader, schemaProvider);
-            serializer.ReadBlueprintAsJson(writer);
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        } finally {
+            writer.Flush();
+            File.WriteAllText(outputJsonPath, Encoding.UTF8.GetString(ms.ToArray()));
         }
-        writer.WriteEndArray();
-        writer.WriteEndObject();
-        writer.Flush();
-        File.WriteAllText(outputJsonPath, Encoding.UTF8.GetString(ms.ToArray()));
     }
 
     private static Dictionary<string, uint> ReadToc(Stream packStream) {

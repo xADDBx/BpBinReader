@@ -38,4 +38,9 @@ public class ValueSchema(ValueKind kind) {
     public static ValueSchema Object(TypeSchema objectType, bool isIdentifiedType, bool forceNeedsType = false) {
         return new(ValueKind.Object) { ObjectType = objectType, IsIdentifiedType = isIdentifiedType, ForceNeedsType = forceNeedsType };
     }
+
+    // Wrath
+    public static ValueSchema Bounds() => new(ValueKind.Bounds);
+    public static ValueSchema BlueprintGuid() => new(ValueKind.BlueprintGuid);
+    public static ValueSchema BlueprintRefWrath() => new(ValueKind.BlueprintRefWrath);
 }

@@ -2,18 +2,21 @@
 
 namespace BpBinReader;
 
+// V1 is the base implementation for Rogue Trader
 public abstract class V1MetadataBase : MetadataLoadContextTypeSchemaProvider {
     protected override Type BlueprintReferenceBaseType { get; }
     protected readonly Type TypeIdAttributeType;
     protected readonly Type ExcludeFieldFromBuildAttributeType;
-    protected readonly Type ModsPatchSerializableAttributeType;
+    protected readonly Type? ModsPatchSerializableAttributeType;
     protected readonly Type SimpleBlueprintType;
     protected readonly Type BlueprintComponentType;
     protected readonly Type ElementType;
+    protected virtual string ExcludeFromBuildAttributeTypeName => "Kingmaker.Blueprints.JsonSystem.Helpers.ExcludeFieldFromBuildAttribute";
+    protected virtual bool RequireModsPatchSerializableAttributeType => true;
     protected V1MetadataBase(IEnumerable<string> assemblyDirectoryPaths, string typeIdAttribute) : base(assemblyDirectoryPaths) {
         TypeIdAttributeType = RequireType(typeIdAttribute);
-        ExcludeFieldFromBuildAttributeType = RequireType("Kingmaker.Blueprints.JsonSystem.Helpers.ExcludeFieldFromBuildAttribute");
-        ModsPatchSerializableAttributeType = RequireType("Kingmaker.Blueprints.JsonSystem.Helpers.ModsPatchSerializableAttribute");
+        ExcludeFieldFromBuildAttributeType = RequireType(ExcludeFromBuildAttributeTypeName);
+        ModsPatchSerializableAttributeType = RequireType("Kingmaker.Blueprints.JsonSystem.Helpers.ModsPatchSerializableAttribute", RequireModsPatchSerializableAttributeType);
         SimpleBlueprintType = RequireType("Kingmaker.Blueprints.SimpleBlueprint");
         BlueprintComponentType = RequireType("Kingmaker.Blueprints.BlueprintComponent");
         ElementType = RequireType("Kingmaker.ElementsSystem.Element");
@@ -44,7 +47,7 @@ public abstract class V1MetadataBase : MetadataLoadContextTypeSchemaProvider {
             .Where(f => !HasAttribute(f, JsonIgnoreAttributeType))
             .Where(f => !HasAttribute(f, ExcludeFieldFromBuildAttributeType));
     }
-    private IEnumerable<FieldInfo> FieldsContractResolver_GetUnitySerializedFields(Type type) {
+    protected virtual IEnumerable<FieldInfo> FieldsContractResolver_GetUnitySerializedFields(Type type) {
         List<FieldInfo> allFields = [];
         if (type.BaseType != null) {
             allFields.AddRange(FieldsContractResolver_GetUnitySerializedFields(type.BaseType));
@@ -55,7 +58,7 @@ public abstract class V1MetadataBase : MetadataLoadContextTypeSchemaProvider {
             .Where(f => FieldsContractResolver_IsSerializableType(f, f.FieldType, true)));
         return allFields;
     }
-    private bool FieldsContractResolver_IsSerializableType(FieldInfo field, Type? fieldType, bool arraysAllowed) {
+    protected virtual bool FieldsContractResolver_IsSerializableType(FieldInfo field, Type? fieldType, bool arraysAllowed) {
         if (fieldType == null) {
             return false;
         }

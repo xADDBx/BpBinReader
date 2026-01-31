@@ -4,6 +4,8 @@ using System.Reflection;
 namespace BpBinReader;
 
 public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvider, IDisposable {
+    public virtual bool UseStringAssetIdType => true;
+    public virtual bool SerializedFieldName => false;
     protected readonly MetadataLoadContext Mlc;
     protected readonly Dictionary<Guid, TypeSchema> TypeSchemaCache = [];
     protected readonly Dictionary<Guid, Type> TypeById = [];
@@ -14,6 +16,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
     protected readonly Type NonSerializedAttributeType;
     protected readonly Type SerializableAttributeType;
     protected readonly Type SerializeFieldAttributeType;
+    protected readonly Type SerializeReferenceAttributeType;
     protected readonly Type UnityObjectType;
     protected readonly Type JsonIgnoreAttributeType;
     private readonly Type m_FlagsAttributeType;
@@ -56,6 +59,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         NonSerializedAttributeType = RequireType("System.NonSerializedAttribute");
         SerializableAttributeType = RequireType("System.SerializableAttribute");
         SerializeFieldAttributeType = RequireType("UnityEngine.SerializeField");
+        SerializeReferenceAttributeType = RequireType("UnityEngine.SerializeReference");
         UnityObjectType = RequireType("UnityEngine.Object");
         JsonIgnoreAttributeType = RequireType("Newtonsoft.Json.JsonIgnoreAttribute");
         m_FlagsAttributeType = RequireType("System.FlagsAttribute");
@@ -137,7 +141,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
     #endregion
     #region SchemaBuilderBase
 
-    protected ValueSchema BuildValueSchema(Type fieldType, bool forceNeedsType = false) {
+    protected virtual ValueSchema BuildValueSchema(Type fieldType, bool forceNeedsType = false) {
         if (fieldType == m_Int32Type) {
             return ValueSchema.Int32();
         }
@@ -230,9 +234,9 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
     }
     #endregion
     #region ReflectionHelper
-    protected Type RequireType(string fullName) {
+    protected Type RequireType(string fullName, bool throwIfNull = true) {
         var t = TryGetType(fullName);
-        if (t == null) {
+        if (t == null && throwIfNull) {
             throw new InvalidOperationException($"Type '{fullName}' not found in supplied MetadataLoadContext assemblies.");
         }
         return t;
@@ -306,7 +310,9 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
                     if (data != null) {
                         return true;
                     }
-                    t = t.BaseType!;
+                    try {
+                        t = t.BaseType!;
+                    } catch { } // e.g. I18N.CJK.ISO2022JPMode
                 } while (inherited && t != null);
             }
         } else if (member is FieldInfo f && attributeType == NonSerializedAttributeType) {

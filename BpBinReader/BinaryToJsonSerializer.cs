@@ -21,8 +21,12 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
         ReadObjectBodyAsJson(writer, rootSchema, true);
 
         var name = m_Reader.ReadString();
-        var assetGuid = m_Reader.ReadString();
-        writer.WriteString("AssetId", assetGuid);
+        if (m_SchemaProvider.UseStringAssetIdType) {
+            writer.WriteString("AssetId", m_Reader.ReadString());
+        } else {
+            m_Reader.Read(m_TypeIdBuffer, 0, 16);
+            writer.WriteString("AssetId", new Guid(m_TypeIdBuffer).ToString("N"));
+        }
         writer.WriteString("Name", name);
 
 
@@ -43,6 +47,12 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
             writer.WritePropertyName(field.Name);
             var startPos = m_Reader.BaseStream.Position;
             try {
+                if (m_SchemaProvider.SerializedFieldName) {
+                    var fieldName = m_Reader.ReadString();
+                    if (fieldName != field.Name) {
+                        throw new InvalidDataException($"Field name mismatch. Expected '{field.Name}', next serialized is '{fieldName}'\nSerialized fields: {string.Join(", ", schema.SerializedFields.Select(s => s.Name))}");
+                    }
+                }
                 ReadValueAsJson(writer, field.Value);
             } catch (Exception ex) {
                 Console.WriteLine($"[Deserialize] Failure at {schema.FullName}.{field.Name} kind={field.Value.Kind} pos=0x{startPos:X} ex={ex}");
@@ -100,6 +110,48 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
                     } else {
                         writer.WriteStringValue("!bp_" + guid);
                     }
+                    return;
+                }
+
+            case ValueKind.BlueprintRefWrath: {
+                    m_Reader.Read(m_TypeIdBuffer, 0, 16);
+                    var guid = new Guid(m_TypeIdBuffer);
+                    if (guid == Guid.Empty) {
+                        writer.WriteNullValue();
+                    } else {
+                        writer.WriteStringValue("!bp_" + guid.ToString("N"));
+                    }
+                    return;
+                }
+
+            case ValueKind.BlueprintGuid: {
+                    m_Reader.Read(m_TypeIdBuffer, 0, 16);
+                    var guid = new Guid(m_TypeIdBuffer);
+                    writer.WriteStringValue("!bp_" + guid.ToString("N"));
+                    return;
+                }
+
+            case ValueKind.Bounds: {
+                    writer.WriteStartObject();
+                    var x1 = m_Reader.ReadSingle();
+                    var y1 = m_Reader.ReadSingle();
+                    var z1 = m_Reader.ReadSingle();
+                    var x2 = m_Reader.ReadSingle();
+                    var y2 = m_Reader.ReadSingle();
+                    var z2 = m_Reader.ReadSingle();
+                    writer.WritePropertyName("center");
+                    writer.WriteStartObject();
+                    writer.WriteNumber("x", x1);
+                    writer.WriteNumber("y", y1);
+                    writer.WriteNumber("z", z1);
+                    writer.WriteEndObject();
+                    writer.WritePropertyName("size");
+                    writer.WriteStartObject();
+                    writer.WriteNumber("x", x2);
+                    writer.WriteNumber("y", y2);
+                    writer.WriteNumber("z", z2);
+                    writer.WriteEndObject();
+                    writer.WriteEndObject();
                     return;
                 }
 

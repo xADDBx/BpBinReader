@@ -1,5 +1,4 @@
 ﻿namespace BpBinReader;
-#warning Game Dependent ._.
 public enum ValueKind {
     Int32,
     UInt32,
@@ -27,5 +26,10 @@ public enum ValueKind {
 
     Array,
     List,
-    Object
+    Object,
+
+    // Wrath
+    BlueprintGuid,
+    Bounds,
+    BlueprintRefWrath
 }
