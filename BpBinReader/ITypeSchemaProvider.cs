@@ -1,7 +1,7 @@
 ﻿namespace BpBinReader;
 public interface ITypeSchemaProvider {
     TypeSchema Resolve(Guid typeId);
-    string GetEnumName(TypeSchema enumType, object value);
+    bool GetEnumName(TypeSchema enumType, object value, out object representation);
     bool UseStringAssetIdType { get; }
     bool SerializedFieldName { get; } 
 }

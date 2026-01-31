@@ -14,6 +14,8 @@ public enum ValueKind {
 
     UnityObjectRef,
 
+    WeakResourceLink,
+
     Color,
     Color32,
     Vector2,

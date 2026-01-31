@@ -22,6 +22,8 @@ public class ValueSchema(ValueKind kind) {
 
     public static ValueSchema UnityObjectRef() => new(ValueKind.UnityObjectRef);
 
+    public static ValueSchema WeakResourceLink() => new(ValueKind.WeakResourceLink);
+
     public static ValueSchema Color() => new(ValueKind.Color);
     public static ValueSchema Color32() => new(ValueKind.Color32);
     public static ValueSchema Vector2() => new(ValueKind.Vector2);

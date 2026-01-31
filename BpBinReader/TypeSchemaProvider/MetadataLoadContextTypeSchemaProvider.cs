@@ -19,6 +19,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
     protected readonly Type SerializeReferenceAttributeType;
     protected readonly Type UnityObjectType;
     protected readonly Type JsonIgnoreAttributeType;
+    private readonly Type m_WeakResourceLinkType;
     private readonly Type m_FlagsAttributeType;
     private readonly Type m_AtributeUsageType;
     private readonly Type m_DelegateType;
@@ -62,6 +63,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         SerializeReferenceAttributeType = RequireType("UnityEngine.SerializeReference");
         UnityObjectType = RequireType("UnityEngine.Object");
         JsonIgnoreAttributeType = RequireType("Newtonsoft.Json.JsonIgnoreAttribute");
+        m_WeakResourceLinkType = RequireType("Kingmaker.ResourceLinks.WeakResourceLink");
         m_FlagsAttributeType = RequireType("System.FlagsAttribute");
         m_AtributeUsageType = RequireType("System.AttributeUsageAttribute");
         m_DelegateType = RequireType("System.Delegate");
@@ -85,7 +87,15 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         m_AnimationCurveType = RequireType("UnityEngine.AnimationCurve");
         m_ColorBlockType = RequireType("UnityEngine.UI.ColorBlock");
     }
-    public string GetEnumName(TypeSchema t, object value) {
+    /// <summary>
+    /// Turns an enum number into its string representation (displaying flag enums by using | as separator).
+    /// If the enum number has no valid representation, the representation will be the numeric value itself.
+    /// </summary>
+    /// <param name="t">TypeSchema of the enum</param>
+    /// <param name="value">Enum value to represent</param>
+    /// <param name="representation">Either a string if a representation exists or a boxed long if not</param>
+    /// <returns>True if a valid representation exists, False otherwise</returns>
+    public bool GetEnumName(TypeSchema t, object value, out object representation) {
         var fields = t.Type.GetFields(BindingFlags.Public | BindingFlags.Static);
         var underlyingType = GetRuntimePrimitiveTypeFromMetadataType(Enum.GetUnderlyingType(t.Type));
         object rawValue = Convert.ChangeType(value, underlyingType, CultureInfo.InvariantCulture);
@@ -95,15 +105,19 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
                 .Where(f => (Convert.ToInt64(f.GetRawConstantValue()) & convertedValue) != 0)
                 .Select(f => f.Name);
             if (!matching.Any()) {
-                return convertedValue.ToString();
+                representation = convertedValue;
+                return false;
             } else {
-                return string.Join(" | ", matching);
+                representation = string.Join(" | ", matching);
+                return true;
             }
         } else {
             try {
-                return fields.First(f => Convert.ToInt64(f.GetRawConstantValue()) == convertedValue).Name;
+                representation = fields.First(f => Convert.ToInt64(f.GetRawConstantValue()) == convertedValue).Name;
+                return true;
             } catch (Exception) {
-                return convertedValue.ToString();
+                representation = convertedValue;
+                return false;
             }
         }
     }
@@ -222,6 +236,10 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
 
         if (IsOrSubclassOf(fieldType, BlueprintReferenceBaseType)) {
             return ValueSchema.BlueprintRef();
+        }
+
+        if (IsOrSubclassOf(fieldType, m_WeakResourceLinkType)) {
+            return ValueSchema.WeakResourceLink();
         }
 
         var isIdentified = IsIdentifiedType(fieldType);

@@ -90,8 +90,30 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
                 writer.WriteStringValue(m_Reader.ReadString());
                 return;
             case ValueKind.EnumInt32:
-                writer.WriteStringValue(m_SchemaProvider.GetEnumName(value.ObjectType!, m_Reader.ReadInt32()));
+                if (m_SchemaProvider.GetEnumName(value.ObjectType!, m_Reader.ReadInt32(), out var repr)) {
+                    writer.WriteStringValue((string)repr);
+                } else {
+                    writer.WriteNumberValue((long)repr);
+                }
                 return;
+
+            case ValueKind.WeakResourceLink: {
+                    if (m_SchemaProvider.SerializedFieldName) {
+                        var fieldName = m_Reader.ReadString();
+                        if (fieldName != "AssetId") {
+                            throw new InvalidOperationException("Trying to read WeakResourceLink but next field is not AssetId");
+                        }
+                    }
+                    var assetId = m_Reader.ReadString();
+                    if (string.IsNullOrWhiteSpace(assetId)) {
+                        writer.WriteNullValue();
+                    } else {
+                        writer.WriteStartObject();
+                        writer.WriteString("AssetId", assetId);
+                        writer.WriteEndObject();
+                    }
+                    return;
+                }
 
             case ValueKind.UnityObjectRef: {
                     var id = m_Reader.ReadInt32();
