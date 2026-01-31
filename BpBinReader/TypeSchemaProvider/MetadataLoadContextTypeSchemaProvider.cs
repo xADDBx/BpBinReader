@@ -94,13 +94,16 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
             var matching = fields
                 .Where(f => (Convert.ToInt64(f.GetRawConstantValue()) & convertedValue) != 0)
                 .Select(f => f.Name);
-
-            return string.Join(" | ", matching);
+            if (!matching.Any()) {
+                return convertedValue.ToString();
+            } else {
+                return string.Join(" | ", matching);
+            }
         } else {
             try {
                 return fields.First(f => Convert.ToInt64(f.GetRawConstantValue()) == convertedValue).Name;
             } catch (Exception) {
-                return "Unset";
+                return convertedValue.ToString();
             }
         }
     }
