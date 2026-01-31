@@ -1,3 +1,5 @@
+// Following is an implementation that was used as a prototype for Rogue Trader.
+// Instead of relying on MetadataLoadContext, it was used during runtime and had therefore access to reflection.
 #if false
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.JsonSystem.BinaryFormat;
