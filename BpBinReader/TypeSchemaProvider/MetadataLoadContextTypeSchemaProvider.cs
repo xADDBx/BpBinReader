@@ -86,8 +86,6 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         m_GradientType = RequireType("UnityEngine.Gradient");
         m_AnimationCurveType = RequireType("UnityEngine.AnimationCurve");
         m_ColorBlockType = RequireType("UnityEngine.UI.ColorBlock");
-
-
     }
     /// <summary>
     /// Turns an enum number into its string representation (displaying flag enums by using | as separator).
