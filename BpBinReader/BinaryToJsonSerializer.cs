@@ -123,8 +123,12 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
                     } else {
                         writer.WriteStartObject();
                         var ids = m_AssetProvider.GetEntryAtIndex(id);
+                        if (ids.IsString) {
+                            writer.WriteString("m_Key", ids.SharedKey);
+                        }
                         writer.WriteString("AssetId", ids.AssetId);
                         writer.WriteNumber("FileId", ids.FileId);
+                        writer.WriteNumber("PathId", ids.PathId);
                         writer.WriteNumber("Index", id);
                         writer.WriteEndObject();
                     }
