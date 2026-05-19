@@ -24,6 +24,8 @@ public class ValueSchema(ValueKind kind) {
 
     public static ValueSchema WeakResourceLink() => new(ValueKind.WeakResourceLink);
 
+    public static ValueSchema LocalizedString() => new(ValueKind.LocalizedString);
+
     public static ValueSchema Color() => new(ValueKind.Color);
     public static ValueSchema Color32() => new(ValueKind.Color32);
     public static ValueSchema Vector2() => new(ValueKind.Vector2);

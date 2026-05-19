@@ -393,5 +393,8 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
             _ => throw new NotSupportedException($"Unsupported underlying enum type '{t.FullName}'")
         };
     }
+    public virtual string GetLocalizedStringText(string key) {
+        throw new NotImplementedException("Provide in the game specific provider for now.");
+    }
     #endregion
 }

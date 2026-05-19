@@ -163,6 +163,15 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
                     return;
                 }
 
+            case ValueKind.LocalizedString: {
+                    var key = m_Reader.ReadString();
+                    writer.WriteStartObject();
+                    writer.WriteString("m_Key", key);
+                    writer.WriteString("Text", m_SchemaProvider.GetLocalizedStringText(key));
+                    writer.WriteEndObject();
+                    return;
+                }
+
             case ValueKind.Bounds: {
                     writer.WriteStartObject();
                     var x1 = m_Reader.ReadSingle();

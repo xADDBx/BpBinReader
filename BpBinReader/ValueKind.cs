@@ -16,6 +16,8 @@ public enum ValueKind {
 
     WeakResourceLink,
 
+    LocalizedString,
+
     Color,
     Color32,
     Vector2,
