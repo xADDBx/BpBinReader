@@ -29,6 +29,9 @@ public sealed class DarkHeresyTypeSchemaProvider : V1MetadataBase {
         return base.BuildValueSchema(fieldType, forceNeedsType);
     }
     public override string GetLocalizedStringText(string key) {
+        if (string.IsNullOrWhiteSpace(key)) {
+            return key;
+        }
         if (m_Strings.TryGetValue(key, out var result)) {
             return result;
         } else {
