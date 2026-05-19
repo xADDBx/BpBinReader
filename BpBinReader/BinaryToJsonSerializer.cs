@@ -167,7 +167,9 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
                     var key = m_Reader.ReadString();
                     writer.WriteStartObject();
                     writer.WriteString("m_Key", key);
-                    writer.WriteString("Text", m_SchemaProvider.GetLocalizedStringText(key));
+                    if (!string.IsNullOrWhiteSpace(key)) {
+                        writer.WriteString("Text", m_SchemaProvider.GetLocalizedStringText(key));
+                    }
                     writer.WriteEndObject();
                     return;
                 }
