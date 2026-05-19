@@ -30,6 +30,7 @@ public class ValueSchema(ValueKind kind) {
     public static ValueSchema Vector3() => new(ValueKind.Vector3);
     public static ValueSchema Vector4() => new(ValueKind.Vector4);
     public static ValueSchema Vector2Int() => new(ValueKind.Vector2Int);
+    public static ValueSchema Rect() => new(ValueKind.Rect);
     public static ValueSchema Gradient() => new(ValueKind.Gradient);
     public static ValueSchema AnimationCurve() => new(ValueKind.AnimationCurve);
     public static ValueSchema ColorBlock() => new(ValueKind.ColorBlock);

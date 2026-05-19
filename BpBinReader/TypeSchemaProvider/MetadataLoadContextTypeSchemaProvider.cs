@@ -39,6 +39,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
     private readonly Type m_Vector3Type;
     private readonly Type m_Vector4Type;
     private readonly Type m_Vector2IntType;
+    private readonly Type m_RectType;
     private readonly Type m_GradientType;
     private readonly Type m_AnimationCurveType;
     private readonly Type m_ColorBlockType;
@@ -83,6 +84,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         m_Vector3Type = RequireType("UnityEngine.Vector3");
         m_Vector4Type = RequireType("UnityEngine.Vector4");
         m_Vector2IntType = RequireType("UnityEngine.Vector2Int");
+        m_RectType = RequireType("UnityEngine.Rect");
         m_GradientType = RequireType("UnityEngine.Gradient");
         m_AnimationCurveType = RequireType("UnityEngine.AnimationCurve");
         m_ColorBlockType = RequireType("UnityEngine.UI.ColorBlock");
@@ -207,6 +209,9 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         }
         if (fieldType == m_Vector2IntType) {
             return ValueSchema.Vector2Int();
+        }
+        if (fieldType == m_RectType) {
+            return ValueSchema.Rect();
         }
         if (fieldType == m_GradientType) {
             return ValueSchema.Gradient();

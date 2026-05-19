@@ -22,6 +22,7 @@ public enum ValueKind {
     Vector3,
     Vector4,
     Vector2Int,
+    Rect,
     Gradient,
     AnimationCurve,
     ColorBlock,

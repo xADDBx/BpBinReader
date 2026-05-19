@@ -270,6 +270,21 @@ public class BinaryToJsonBlueprintSerializer(BinaryReader reader, ITypeSchemaPro
                     return;
                 }
 
+            case ValueKind.Rect: {
+                    var x = m_Reader.ReadSingle();
+                    var y = m_Reader.ReadSingle();
+                    var width = m_Reader.ReadSingle();
+                    var height = m_Reader.ReadSingle();
+
+                    writer.WriteStartObject();
+                    writer.WriteNumber("x", x);
+                    writer.WriteNumber("y", y);
+                    writer.WriteNumber("width", width);
+                    writer.WriteNumber("height", height);
+                    writer.WriteEndObject();
+                    return;
+                }
+
             case ValueKind.AnimationCurve: {
                     var keysCount = m_Reader.ReadInt32();
                     writer.WriteStartObject();
