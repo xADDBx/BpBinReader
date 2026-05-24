@@ -242,7 +242,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
             return ValueSchema.UnityObjectRef();
         }
 
-        if (IsOrSubclassOf(fieldType, BlueprintReferenceBaseType) || IReferenceBaseType != null && fieldType.GetInterface(IReferenceBaseType.FullName!) != null) {
+        if (IsOrSubclassOf(fieldType, BlueprintReferenceBaseType) || (IReferenceBaseType != null && fieldType.GetInterface(IReferenceBaseType.FullName!) != null)) {
             return ValueSchema.BlueprintRef();
         }
 
