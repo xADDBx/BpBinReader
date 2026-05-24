@@ -45,6 +45,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
     private readonly Type m_ColorBlockType;
 
     protected abstract Type BlueprintReferenceBaseType { get; }
+    protected readonly Type? IReferenceBaseType;
     public MetadataLoadContextTypeSchemaProvider(IEnumerable<string> assemblyDirectoryPaths) {
         var resolver = new PathAssemblyResolver(assemblyDirectoryPaths.SelectMany(Directory.EnumerateFiles));
         Mlc = new MetadataLoadContext(resolver);
@@ -88,6 +89,8 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
         m_GradientType = RequireType("UnityEngine.Gradient");
         m_AnimationCurveType = RequireType("UnityEngine.AnimationCurve");
         m_ColorBlockType = RequireType("UnityEngine.UI.ColorBlock");
+
+        IReferenceBaseType = RequireType("Kingmaker.Blueprints.Base.IReferenceBase", false);
     }
     /// <summary>
     /// Turns an enum number into its string representation (displaying flag enums by using | as separator).
@@ -239,7 +242,7 @@ public abstract class MetadataLoadContextTypeSchemaProvider : ITypeSchemaProvide
             return ValueSchema.UnityObjectRef();
         }
 
-        if (IsOrSubclassOf(fieldType, BlueprintReferenceBaseType)) {
+        if (IsOrSubclassOf(fieldType, BlueprintReferenceBaseType) || IReferenceBaseType != null && fieldType.GetInterface(IReferenceBaseType.FullName!) != null) {
             return ValueSchema.BlueprintRef();
         }
 

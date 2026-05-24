@@ -22,7 +22,7 @@ public sealed class DarkHeresyTypeSchemaProvider : V1MetadataBase {
     }
 
     protected override ValueSchema BuildValueSchema(Type fieldType, bool forceNeedsType = false) {
-        // Handle specialized Wrath stuff, then fall back to defaults
+        // Handle specialized DH stuff, then fall back to defaults
         if (fieldType == m_LocalizedStringType) {
             return ValueSchema.LocalizedString();
         }
